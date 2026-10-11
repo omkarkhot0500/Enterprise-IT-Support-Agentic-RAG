@@ -1,6 +1,6 @@
 import logging
 from typing import Literal
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain_tavily import TavilySearch
 from langgraph.graph import StateGraph, START, END
 from app.core.config import get_settings
@@ -16,12 +16,13 @@ _web_search = None
 def llm():
     global _llm
     if _llm is None:
-        if not settings.openai_api_key:
-            raise RuntimeError("OPENAI_API_KEY is missing")
-        _llm = ChatOpenAI(
-            model=settings.openai_model,
+        if not settings.groq_api_key:
+            raise RuntimeError("GROQ_API_KEY is missing")
+        _llm = ChatGroq(
+            model=settings.groq_model,
             temperature=0,
-            api_key=settings.openai_api_key,
+            groq_api_key=settings.groq_api_key,
+            max_retries=3,
         )
     return _llm
 
@@ -43,8 +44,9 @@ def add_trace(state: AgentState, message: str):
     return [*state.get("trace", []), message]
 
 def route_question(state: AgentState):
-    router = llm().with_structured_output(RouteDecision, method="json_mode")
-    decision = router.invoke(f"""
+    try:
+        router = llm().with_structured_output(RouteDecision, method="json_mode")
+        decision = router.invoke(f"""
 You route messages for an enterprise IT support assistant.
 Use kb for questions about company IT policies, VPN, password reset, MFA, laptop setup,
 software access, security, email, devices, troubleshooting, or technology support.
@@ -52,7 +54,11 @@ Use direct only for greetings, thanks, or casual chat that needs no company know
 Question: {state['question']}
 Return valid JSON like {{"route":"kb"}}.
 """)
-    return {"source_used": decision.route, "trace": add_trace(state, f"Router → {decision.route.upper()}")}
+        route = decision.route if decision else "kb"
+    except Exception as exc:
+        logger.warning(f"Routing fallback to 'kb' due to: {exc}")
+        route = "kb"
+    return {"source_used": route, "trace": add_trace(state, f"Router → {route.upper()}")}
 
 def route_after_router(state: AgentState) -> Literal["retrieve_kb", "direct_answer"]:
     return "retrieve_kb" if state["source_used"] == "kb" else "direct_answer"
@@ -62,16 +68,21 @@ def retrieve_kb(state: AgentState):
     return {"kb_docs": docs, "trace": add_trace(state, f"Private KB retrieval → {len(docs)} chunks")}
 
 def grade_kb(state: AgentState):
-    grader = llm().with_structured_output(EvidenceGrade, method="json_mode")
-    context = "\n\n".join(f"Source: {d.metadata.get('source','unknown')}\n{d.page_content}" for d in state["kb_docs"])
-    grade = grader.invoke(f"""
+    try:
+        grader = llm().with_structured_output(EvidenceGrade, method="json_mode")
+        context = "\n\n".join(f"Source: {d.metadata.get('source','unknown')}\n{d.page_content}" for d in state["kb_docs"])
+        grade_obj = grader.invoke(f"""
 You grade evidence for an enterprise IT support assistant.
 Question: {state['question']}
 Private company KB evidence:\n{context}
 Return good only if the evidence is sufficient to answer confidently and specifically.
 Otherwise return weak. JSON: {{"grade":"good"}} or {{"grade":"weak"}}.
 """)
-    return {"kb_grade": grade.grade, "trace": add_trace(state, f"KB evidence grade → {grade.grade.upper()}")}
+        grade = grade_obj.grade if grade_obj else "weak"
+    except Exception as exc:
+        logger.warning(f"KB evidence grading fallback to 'weak' due to: {exc}")
+        grade = "weak"
+    return {"kb_grade": grade, "trace": add_trace(state, f"KB evidence grade → {grade.upper()}")}
 
 def after_kb(state: AgentState) -> Literal["generate_from_kb", "search_web"]:
     return "generate_from_kb" if state["kb_grade"] == "good" else "search_web"
@@ -96,14 +107,19 @@ def search_web(state: AgentState):
     }
 
 def grade_web(state: AgentState):
-    grader = llm().with_structured_output(EvidenceGrade, method="json_mode")
-    grade = grader.invoke(f"""
+    try:
+        grader = llm().with_structured_output(EvidenceGrade, method="json_mode")
+        grade_obj = grader.invoke(f"""
 Question: {state['question']}
 Web evidence:\n{state['web_results']}
 Return good if the evidence is sufficient and directly relevant; otherwise weak.
 Return valid JSON like {{"grade":"good"}}.
 """)
-    return {"web_grade": grade.grade, "trace": add_trace(state, f"Web evidence grade → {grade.grade.upper()}")}
+        grade = grade_obj.grade if grade_obj else "weak"
+    except Exception as exc:
+        logger.warning(f"Web evidence grading fallback to 'weak' due to: {exc}")
+        grade = "weak"
+    return {"web_grade": grade, "trace": add_trace(state, f"Web evidence grade → {grade.upper()}")}
 
 def after_web(state: AgentState) -> Literal["generate_from_web", "rewrite_query", "insufficient"]:
     if state["web_grade"] == "good":
