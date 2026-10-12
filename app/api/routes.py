@@ -10,6 +10,7 @@ from app.services.audit import write_audit
 router = APIRouter(prefix="/api")
 settings = get_settings()
 
+# This is a request model for the chat endpoint meaning it is used to validate the question asked by the user
 class ChatRequest(BaseModel):
     question: str = Field(min_length=2, max_length=3000)
 
@@ -19,10 +20,14 @@ def health():
     return {"status": "ok", "service": settings.app_name}
 
 
+# This is a post request model for the chat endpoint meaning it is used to validate the question asked by the user
+# Below end point is used for user to ask questions to the rag system
 @router.post("/chat")
 def chat(payload: ChatRequest):
     try:
         result = ask(payload.question)
+        
+        # Writing the question, source used and trace to the database
         write_audit(payload.question, result["source_used"], result.get("trace", []))
 
         return {
@@ -38,11 +43,13 @@ def chat(payload: ChatRequest):
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
-
+# Below end point is for admin only to ingest documents to the rag system
 @router.post("/ingest")
 async def ingest(file: UploadFile = File(...), x_admin_key: str = Header(default="")):
+    # validating the admin key
     if x_admin_key != settings.admin_api_key:
         raise HTTPException(status_code=401, detail="Invalid admin key")
+    # checking the file extension
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in SUPPORTED:
         raise HTTPException(status_code=400, detail=f"Supported: {', '.join(sorted(SUPPORTED))}")
