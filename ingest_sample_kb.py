@@ -1,3 +1,9 @@
+# This file is used to ingest the sample knowledge base into the pinecone index
+# In simple words: it will take the sample knowledge base files,
+# chunk them and add them to the pinecone index
+# this script will run when we run the streamlit app for the first time
+# or whenever the knowledge base is updated or chnaged.
+
 from pathlib import Path
 from app.core.config import get_settings
 from app.services.ingestion import load_file, chunk_documents

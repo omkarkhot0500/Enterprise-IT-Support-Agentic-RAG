@@ -64,6 +64,8 @@ def ensure_index():
     pc = Pinecone(api_key=settings.pinecone_api_key)
     names = [x["name"] for x in pc.list_indexes()]
 
+    # this checks if the index with the given name already exists then it will check the dimension, 
+    # if the dimension is not matching then it will delete the index.
     if settings.pinecone_index_name in names:
         index_info = pc.describe_index(settings.pinecone_index_name)
         current_dimension = getattr(index_info, "dimension", None)
@@ -74,7 +76,8 @@ def ensure_index():
             pc.delete_index(name=settings.pinecone_index_name)
             while settings.pinecone_index_name in [x["name"] for x in pc.list_indexes()]:
                 time.sleep(1)
-
+    
+    # this checks if the index with the given name does not exist then it will create it
     if settings.pinecone_index_name not in [x["name"] for x in pc.list_indexes()]:
         pc.create_index(
             name=settings.pinecone_index_name,
