@@ -1,12 +1,20 @@
 # Project Intro
 One of my key projects is the Enterprise IT Support Agentic RAG Copilot, an AI-powered IT support assistant that helps employees find answers to their IT-related questions.
+
 The problem I wanted to solve was that employees in a company often need to search through multiple documents or contact the IT support team to resolve common problems. I wanted to build an assistant that could answer their questions using the company's private IT documents instead of relying only on the LLM's existing knowledge.
+
 I built it using Python, FastAPI, LangGraph, Pinecone, Hugging Face embeddings, Groq, and Tavily. I used FastAPI to build the backend APIs, LangGraph to manage the agent workflow, Pinecone to store and retrieve document embeddings, Groq to run the LLM, and Tavily for web search.
+
 What makes this project interesting is that I didn't implement just a basic RAG pipeline. I built an agentic RAG workflow that can evaluate the retrieved evidence and decide what to do next.
+
 When an employee asks a question, the agent first searches the private knowledge base. If the retrieved information is relevant, it generates an answer using that evidence. If the evidence is weak, it falls back to web search using Tavily. If the web evidence is also insufficient, it rewrites the query and retries the retrieval process. If it still cannot find reliable evidence, it returns an insufficient-evidence response instead of guessing.
+
 For document ingestion, I implemented a pipeline that loads PDF, TXT, Markdown, and DOCX files, splits them into smaller chunks, generates embeddings, and stores them in Pinecone. I also added an admin-key-protected API for uploading documents.
+
 For monitoring and debugging, I implemented SQLite audit logging, which records the user's question, the final source information, and the agent's decision trace.
+
 The most important part of this project is the LangGraph state machine, where the workflow uses routing, evidence grading, conditional branching, and query rewriting to decide how to answer a question.
+
 Overall, this project helped me gain practical experience with Agentic AI, RAG, LangGraph workflows, vector databases, embeddings, API development, document processing, and audit logging.
 
 # Interview Intro of Project
