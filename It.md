@@ -1,4 +1,15 @@
-# Project Intro
+# Interview Intro of Project
+
+One of my key projects is the Enterprise IT Support Agentic RAG, an AI-powered assistant that answers employees' IT questions using company documents.
+I built it using Python, FastAPI, LangGraph, Pinecone, Groq, Hugging Face embeddings, and Tavily.
+The main feature is that the agent first retrieves information from the private knowledge base and grades the information before generating an answer.
+If the evidence is weak, it searches the web, rewrites the query, and retries if necessary. 
+If it still cannot find reliable information, it returns an insufficient-evidence response.
+I also implemented document ingestion using chunking and embeddings, a protected document-upload endpoint, and SQLite audit logging to record the agent's decisions.
+
+
+# Read
+
 One of my key projects is the Enterprise IT Support Agentic RAG Copilot, an AI-powered IT support assistant that helps employees find answers to their IT-related questions.
 
 The problem I wanted to solve was that employees in a company often need to search through multiple documents or contact the IT support team to resolve common problems. I wanted to build an assistant that could answer their questions using the company's private IT documents instead of relying only on the LLM's existing knowledge.
@@ -17,12 +28,6 @@ The most important part of this project is the LangGraph state machine, where th
 
 Overall, this project helped me gain practical experience with Agentic AI, RAG, LangGraph workflows, vector databases, embeddings, API development, document processing, and audit logging.
 
-# Interview Intro of Project
-One of my key projects is the Enterprise IT Support Agentic RAG Copilot, an AI-powered assistant that answers employees' IT questions using company documents.
-I built it using Python, FastAPI, LangGraph, Pinecone, Groq, Hugging Face embeddings, and Tavily.
-The main feature is that the agent first retrieves information from the private knowledge base and grades the evidence before generating an answer. If the evidence is weak, it searches the web, rewrites the query, and retries if necessary. If it still cannot find reliable information, it returns an insufficient-evidence response.
-I also implemented document ingestion using chunking and embeddings, a protected document-upload endpoint, and SQLite audit logging to record the agent's decisions.
-Overall, this project helped me gain practical experience in Agentic RAG, LLM workflows, vector search, backend development, and evidence-based AI systems.
 
 # All About the Agentic RAG Workflow
 How the agent works in my project
@@ -46,6 +51,246 @@ How the workflow works, step by step
 10. If the evidence is still weak and no retry remains, insufficient() returns a safe response.
 Interview answer
 I implemented the agentic RAG workflow using LangGraph. The workflow contains nodes for routing, retrieval, evidence grading, web search, query rewriting, and answer generation. Conditional edges decide which node runs next based on the LLM's decisions. The system searches the private knowledge base first, falls back to web search if the evidence is weak, retries once with a rewritten query, and returns an insufficient-evidence response if it still cannot find reliable information.
+
+
+
+# Q and A
+
+Q1. Tell me about your Enterprise IT Support Agentic RAG project.
+
+"I built an Enterprise IT Support Agentic RAG to help employees find accurate answers to internal IT-related questions using company documentation.
+
+The problem I wanted to solve was that employees often create repetitive support tickets because they cannot find the correct information in internal documents. Traditional keyword search can return irrelevant results, and a basic LLM chatbot may generate answers that are not supported by the company's documentation.
+
+To solve this, I used Retrieval-Augmented Generation, or RAG, with an agentic workflow built using LangGraph. I used Pinecone as the vector database, Hugging Face embeddings for semantic search, Groq to run the language model, Tavily for external web search when necessary, and FastAPI to expose the workflow through APIs.
+
+The main feature is that the agent first retrieves information from the private knowledge base and grades the information before generating an answer.
+If the evidence is weak, it searches the web, rewrites the query, and retries if necessary. 
+If it still cannot find reliable information, it returns an insufficient-evidence response.
+I also implemented document ingestion using chunking and embeddings, a protected document-upload endpoint, and SQLite audit logging to record the agent's decisions.
+
+
+Q2. What is Agentic RAG, and how is it different from normal RAG?
+Interview answer:
+
+"Traditional RAG generally follows a predefined retrieval-and-generation pipeline: retrieve documents, pass them to the LLM, and generate an answer.
+
+Agentic RAG adds decision-making to that workflow. Instead of always following one fixed path, the system evaluates intermediate results and decides what action to take next.
+
+
+Q3. Why did you use LangGraph instead of a simple LangChain chain?
+Interview answer:
+
+"I chose LangGraph because my workflow has conditional branches and retry logic. A simple sequential chain is suitable when the steps always run in the same order, but my system needs to decide what to do based on retrieval quality.
+
+For example, after retrieving private documents, the workflow grades the evidence. Depending on the result, it can generate an answer, use external search, or rewrite the query and retry. It also needs to stop when the retry limit is reached.
+
+LangGraph lets me represent these operations as nodes, connect them with edges, and use conditional edges to control execution. Its shared state allows each node to read the current query, retrieved documents, evidence assessment, and retry information." 
+
+Know these three terms for interviews:
+- State: The data shared across the workflow, such as the question, documents, evidence grade, retry count, and final answer.
+- Node: A function that performs a task, such as retrieval, grading, query rewriting, or answer generation.
+- Edge: A connection that determines which node executes next. A conditional edge selects the next step based on the current state.
+
+
+Q4. What is the difference between LangChain and LangGraph?
+Interview answer:
+
+"LangChain provides components for building LLM applications, such as model integrations, prompts, retrievers, and tool integrations. LangGraph focuses on orchestrating workflows that require state, conditional routing, and loops.
+
+In my project, LangChain-compatible components can handle tasks such as calling the LLM or working with retrieval components, while LangGraph controls the overall flow of the application, including evidence grading, fallback routing, and retry logic."
+
+The key distinction is that LangChain supplies useful building blocks, while LangGraph controls the stateful workflow. They can be used together.
+
+Q5. How does the complete RAG pipeline work in your project?
+Interview answer:
+
+"My RAG system has two main pipelines: document ingestion and question answering.
+
+During ingestion, I load the company documents, split them into smaller chunks using recursive text splitting, generate embeddings for those chunks, and index them in Pinecone.
+
+During question answering, I take the user's question, generate its embedding using the compatible embedding model, and search Pinecone for semantically similar chunks. I then evaluate the retrieved evidence. If it is sufficient, the LLM generates a grounded answer. Otherwise, the workflow can try external search or query rewriting, subject to the retry limit."
+
+
+Q5. What are embeddings, and why do you need them?
+Interview answer:
+
+"Embeddings are numerical vectors that represent the semantic meaning of text. Text with similar meanings tends to have vectors that are close to each other in the embedding space.
+
+In my project, I use a Hugging Face embedding model to convert document chunks and user questions into vectors. Pinecone uses those vectors to find semantically relevant document chunks.
+
+For example, a user might ask, 'I can't access the company network from home,' while the document says, 'Remote VPN connectivity troubleshooting.' The wording is different, but the meanings are related, so semantic retrieval can help find the relevant document."
+
+Cross-question: Are embeddings generated by Groq?
+
+Not in the architecture described in your resume. Hugging Face Embeddings handle vector generation, Pinecone handles vector search, and Groq provides access to the language model for reasoning and answer generation.
+
+Cross-question: Do you need the exact same embedding model for documents and queries?
+
+You generally need a compatible embedding model and configuration. The document chunks and user queries must be represented in the same compatible vector space, with matching dimensions and appropriate preprocessing.
+
+
+Q6. What is recursive chunking, and why did you use it?
+Interview answer:
+
+"Recursive chunking splits a long document into smaller pieces while attempting to preserve meaningful text boundaries. Instead of blindly splitting text at an arbitrary character position, the splitter tries larger structural separators first and then falls back to smaller separators when necessary.
+
+I used recursive chunking because company documents can contain multiple topics. If I store an entire document as one vector, retrieving it may provide too much irrelevant information. Smaller chunks help retrieve the specific section that answers a user's question."
+
+For example, a document might contain sections about VPN setup, email configuration, and printer troubleshooting. Chunking makes it easier to retrieve only the relevant section.
+
+Cross-question: What happens if chunks are too small?
+
+They may lose important context. A chunk containing only "restart it" is not useful if the preceding text explains what "it" refers to.
+
+Cross-question: What happens if chunks are too large?
+
+They may include unrelated information, reduce retrieval precision, and consume more of the LLM's context window.
+
+Cross-question: Why use chunk overlap?
+
+Overlap preserves context around chunk boundaries. For example, if a troubleshooting instruction starts near the end of one chunk, the next chunk can retain part of that context. The exact chunk size and overlap should be tuned to your documents and evaluated rather than guessed.
+
+
+Q10. What is Pinecone, and why did you choose it?
+Interview answer:
+
+"Pinecone is a managed vector database designed to store and search vector embeddings. I used it to index embeddings of company document chunks and retrieve the most semantically relevant chunks when a user asks a question.
+
+It allows me to perform similarity searches without loading and comparing every document manually in my application code. I can also associate metadata with vectors to identify their source documents and apply supported filters where needed." 
+
+Cross-question: Why not use MongoDB or SQLite for vector search?
+
+MongoDB and SQLite are useful for application data, metadata, and structured records. Pinecone is specifically designed for vector retrieval and provides managed vector-search capabilities. Some other databases also support vector search, so Pinecone is a design choice rather than the only possible solution.
+
+Cross-question: What happens if Pinecone returns irrelevant documents?
+
+The evidence grader can identify that the retrieved material does not adequately support the question. The workflow can then use query rewriting or external search, within its configured limits. However, a grader is not perfect, so retrieval quality still needs testing and evaluation.
+
+
+
+Q11. What does top_k mean in vector search?
+Interview answer:
+
+"top_k determines how many of the most similar vector matches are returned for a query. For example, if top_k is 5, the search returns up to five nearest matches, subject to the query and available data.
+
+A very small value can miss relevant evidence. A very large value can introduce irrelevant content and increase prompt size and latency. I would tune top_k based on retrieval evaluation."
+
+Cross-question: Does a high similarity score guarantee a correct answer?
+
+No. Similarity indicates how closely the vectors match according to the retrieval metric; it does not prove that the document is factually correct or that it answers the question. That is why the project includes an evidence-grading stage.
+
+
+Q12. What metadata would you store with each chunk?
+Interview answer:
+
+Meta data
+{
+    "id": "vpn_001_chunk_0",
+    "values": [0.23, -0.17, 0.82, ...],
+    "metadata": {
+        "filename": "VPN_Guide.pdf",
+        "document_id": "vpn_001",
+        "chunk_index": 0,
+        "text": "To connect to the company VPN, open Cisco AnyConnect..."
+    }
+}
+
+
+Q13. What is evidence grading, and how does it work in your project?
+Interview answer:
+
+"Evidence grading is the step where the workflow evaluates whether the retrieved documents are relevant and sufficient to answer the user's question.
+
+Retrieval alone does not guarantee that the correct information was found. Pinecone may return semantically similar content that does not actually answer the question.
+
+In my project, the workflow uses an evaluation step to decide whether the retrieved evidence is strong enough to proceed with answer generation or whether it needs another retrieval strategy.
+
+This makes the workflow more reliable than blindly passing the top search results to the LLM."
+
+Example:
+
+User asks: "What is the company's approved VPN client?"
+
+Retrieved document: "Employees must connect through the company VPN when working remotely."
+
+This document is related to VPN usage, but it does not identify the approved client. The evidence should be considered insufficient for that specific question.
+
+Cross-question: Is evidence grading the same as checking the similarity score?
+
+No. A similarity score measures vector similarity. Evidence grading evaluates whether the retrieved content is actually LLM call.
+
+
+
+Q14. How do you prevent hallucinations in your project?
+Interview answer:
+
+"I designed the workflow to reduce hallucinations by grounding answers in retrieved evidence rather than relying only on the LLM's pretrained knowledge.
+
+First, the system retrieves relevant private documents. Next, it evaluates the retrieved evidence before generating an answer. If the evidence is insufficient, it can try external web search or rewrite the query and retry retrieval. I also limit retries to avoid an endless loop.
+
+If the available evidence is still insufficient, the system returns a controlled fallback response instead of pretending it knows the answer."
+
+Cross-question: Can you guarantee zero hallucinations?
+
+"No. An LLM-based system cannot guarantee zero hallucinations simply because it uses RAG. Retrieval can miss the correct document, the evidence grader can make mistakes, and the model can misinterpret its context.
+
+My approach reduces the risk through retrieval, evidence evaluation, bounded retries, and fallback behavior. In a production system, I would also evaluate answer correctness, source support, and retrieval quality using a representative test dataset."
+
+
+
+Q15. What happens when private documents don't contain the answer?
+Interview answer:
+
+"My workflow can fall back to Tavily for external web search when the internal evidence is insufficient. This gives the system another potential source of information instead of forcing it to answer from incomplete internal documentation.
+
+The external results must still be evaluated before using them. If the available evidence remains insufficient after the retry logic, the system returns a controlled response indicating that it could not find enough information."
+
+Cross-question: Why not always search the web first?
+
+"Internal company documentation should generally be the preferred source for company-specific procedures because it represents the organization's own policies. External websites may describe generic practices that conflict with the company's approved process. I use web search as a fallback rather than treating it as automatically more authoritative."
+
+Cross-question: What if an external website contradicts an internal document?
+
+A sensible enterprise policy is to prefer the authoritative, current internal policy for company-specific procedures, flag the conflict when appropriate, and avoid silently replacing company policy with an external suggestion. External sources should be used only within the application's defined trust rules.
+
+
+Q16. What is query rewriting, and why do you need it?
+Interview answer:
+
+"Query rewriting means transforming the user's original question into a clearer or more retrieval-friendly query without changing its intended meaning.
+
+For example, a user may ask, 'VPN is not working from home. What should I do?' A rewritten query might be 'company remote VPN connection troubleshooting steps.'
+
+The rewritten query can improve retrieval when the original wording doesn't closely match the language used in the documents. In my project, query rewriting is part of the recovery workflow when the existing evidence is insufficient."
+
+Cross-question: Does rewriting always improve retrieval?
+
+No. It can introduce assumptions or remove important details. A good implementation preserves the user's intent, and the revised query should be evaluated by retrieving and grading the resulting evidence.
+
+
+Q17. Why do you need retry logic? How do you prevent an infinite loop?
+Interview answer:
+
+"Retry logic allows the workflow to recover when the first retrieval attempt doesn't produce sufficient evidence. Instead of immediately giving up, it can rewrite the query and attempt retrieval again.
+
+However, retrying indefinitely would increase latency and API costs without guaranteeing a better result. I therefore use a bounded retry strategy. In my implementation, the retry limit is one additional attempt.
+
+If the workflow still cannot obtain sufficient evidence, it stops retrying and returns the fallback response."
+
+The important distinction is that retry logic is not a guarantee of correctness. It is a bounded attempt to improve the evidence.
+
+Cross-question: Why not retry five or ten times?
+
+Each attempt can involve embedding generation, vector search, LLM calls, and possibly external search. More attempts increase latency and cost. The retry limit should be chosen using evaluation results and the application's response-time requirements.
+
+
+
+
+
+
+
+
 
 A. Architecture and Workflow
 Q1. Complete RAG architecture — from query to answer?
